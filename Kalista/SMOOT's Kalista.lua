@@ -70,7 +70,7 @@ end
 -------------------------------------------------------------------
 
 function EHasar(a)
-    local e = StackGetir(a)
+    local e = StackGetir(a)-1
 	local level = myHero:GetSpellData(_E).level
 	local etabanhasar = ({20, 30, 40, 50, 60})[level] + 0.6* (myHero.totalDamage)
 	local stackhasar = (e*(({10, 14, 19, 25, 32})[level]+({0.2, 0.225, 0.25, 0.275, 0.3})[level] * myHero.totalDamage))
