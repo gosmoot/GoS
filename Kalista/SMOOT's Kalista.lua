@@ -13,7 +13,7 @@ local EStackName = "kalistaexpungemarker"
 function Hazirmi(skill)
 	return Game.CanUseSpell(skill) == 0
 end
---Thanks for this function !
+---------------------------Thanks for this function !
 function HasBuff(unit, buffname)
   for i = 0, unit.buffCount do
     local buff = unit:GetBuff(i)
@@ -67,28 +67,8 @@ function DamageHesapla(source, target, amount)
 	end
 	return value * amount
 end
---
---[[
-	local level = myHero:GetSpellData(_E).level
-	local basedmg = ({20, 30, 40, 50, 60})[level] + 0.6* (myHero.totalDamage)
-	local stacksdmg = (stacks - 1)*(({10, 14, 19, 25, 32})[level]+({0.2, 0.225, 0.25, 0.275, 0.3})[level] * myHero.totalDamage)
+-------------------------------------------------------------------
 
-
-function GetERawDamage(unit)
-	if(myHero:GetSpellData(_E).level == 0 or unit == nil) then
-		return 0
-	end
-
-	local basedmg = 10 + (10 * myHero:GetSpellData(_E).level) + 0.6 * myHero.totalDamage
-	local perStackArray = { 10, 14, 19, 25, 32 }
-	local perStackdmg = perStackArray[myHero:GetSpellData(_E).level - 1]
-	local perStackMod = (0.2 + (0.025 * myHero:GetSpellData(_E).level)) * myHero.totalDamage
-	local stacks = GetRendCount(unit) - 1
-	local currentDamage = (basedmg + (stacks * (perStackdmg + perStackMod))) * 0.54
-
-	return currentDamage
-end
-]]
 function EHasar(a)
     local e = StackGetir(a)
 	local level = myHero:GetSpellData(_E).level
