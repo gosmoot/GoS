@@ -1,11 +1,44 @@
 if(myHero.charName ~= "Kalista") then return end
 
+--[[
+]]
+
+
+
+
+
+
+
+
+
 --Menu
 local K = MenuElement({type = MENU, name = "SMOOT's Kalista", id = "smootkalista"})
-K:MenuElement({type = MENU, name = " Settings coming soon..", id = "soon"})
+K:MenuElement({type = MENU, name = "LaneClear", id = "LaneClear"})
+K:MenuElement({type = MENU, name = "Combo", id = "Combo"})
+K:MenuElement({type = MENU, name = "Harass", id = "Harass"})
+K:MenuElement({type = MENU, name = "Draw", id = "Draww"})
+-------Alt Menuler
+--LaneClear
+--K.LaneClear:MenuElement({id = "q", name = "Use Q", value = 1})
+K.LaneClear:MenuElement({id = "kacminyonoldureyim", name = " 'X' minion kill with E Spell.", value = 2,min = 0, max = 5, step = 1})
+--Combo
+--K.Combo:MenuElement({id = "qc", name = "Use Q"})
+K.Combo:MenuElement({id = "botrk" , name = "Use Botrk"})
+K.Combo:MenuElement({id = "minionComboHarass", name = "If killable minion press E (Enemy HP : %..)", value = 40, min = 0,max = 100, step = 10})
+--Harass
+K.Harass:MenuElement({id = "minionHarass", name = "If killable minion press E", value = true})
+--Draw
+K.Draww:MenuElement({id = "drawE", name = "Draw E range", value = true})
+K.Draww:MenuElement({id = "drawHP", name = "Draw E damage %", value = true})
+
+
+
+
+
 
 --Buyu
 local E = { range = 1000, delay = 200 }
+local Q = { range = 1150, delay = 0.35, speed = 2400}
 --Degisken
 local EStackName = "kalistaexpungemarker"
 --Gerekli Fonksiyonlar
@@ -13,7 +46,36 @@ local EStackName = "kalistaexpungemarker"
 function Hazirmi(skill)
 	return Game.CanUseSpell(skill) == 0
 end
----------------------------Thanks for this function !
+
+local is = {
+	[ITEM_1] = HK_ITEM_1,
+	[ITEM_2] = HK_ITEM_2,
+	[ITEM_3] = HK_ITEM_3,
+	[ITEM_4] = HK_ITEM_4,
+	[ITEM_5] = HK_ITEM_5,
+	[ITEM_6] = HK_ITEM_6,
+	[ITEM_7] = HK_ITEM_7,
+}
+function Botrk()
+	local dizi = {}
+	for i = ITEM_1,ITEM_7 do
+		local id = myHero:GetItemData(i).itemID 
+		if id > 0 then
+			dizi[id] = i
+		end
+	end
+	local itm = dizi[3153]
+	
+	if itm and myHero:GetSpellData(itm).currentCd == 0 and K.Combo.botrk:Value() then
+	--print(""..tostring(itm))
+		local target = _G.SDK.ObjectManager:GetEnemyHeroes(E.range)
+		if target then
+			Control.CastSpell(is[itm],target)
+			--print("buldum")
+		end
+	end
+end
+--Thanks for this function !
 function HasBuff(unit, buffname)
   for i = 0, unit.buffCount do
     local buff = unit:GetBuff(i)
@@ -67,7 +129,6 @@ function DamageHesapla(source, target, amount)
 	end
 	return value * amount
 end
--------------------------------------------------------------------
 
 function EHasar(a)
     local e = StackGetir(a)-1
@@ -116,20 +177,65 @@ function MinyonOlurmu()
 end
 --Combo ve LaneClear
 function Combo()
-
+Botrk()
+--Minyon
+	local deger = K.Combo.minionComboHarass:Value()
+	local dminyon = _G.SDK.ObjectManager:GetEnemyMinions(E.range)
+	local msayisi = 0
+	for i = 0, #dminyon do
+	local enemy = dminyon[i]
+	if(HedefHasarKontrol(enemy))
+	then
+	msayisi = msayisi + 1
+	end
+	end
+--Dusman
+	local abc = _G.SDK.ObjectManager:GetEnemyHeroes(E.range)
+	for qwe=0, #abc do
+	if(_G.SDK.Utilities:IsValidTarget(abc[qwe]) and StackGetir(abc[qwe])) then
+	local hesap = (100*math.floor(EHasar(abc[qwe]))/abc[qwe].health)
+	if(hesap >= deger and msayisi > 1) then
+	Control.CastSpell(_E)
+	end
+	end
+	end
 end
 
 function Clear()
 	if(Hazirmi(_E)) then 
-	if(MinyonOlurmu() >= 2) then
-			Control.CastSpell(HK_E)
-		end
+	local deger = K.LaneClear.kacminyonoldureyim:Value()
+	local dminyon = _G.SDK.ObjectManager:GetEnemyMinions(E.range)
+	local msayisi = 0
+	for i = 0, #dminyon do
+	local enemy = dminyon[i]
+	if(HedefHasarKontrol(enemy))
+	then
+	msayisi = msayisi + 1
+	end
+	end
+	if(msayisi >= deger) then
+		Control.CastSpell(HK_E)
+	end
 	end
 end
 
+function Harass()
+local b = _G.SDK.ObjectManager:GetEnemyMinions(E.range)
+local sayi = 0
+for a=0, #b do
+if(HedefHasarKontrol(b[i])) then sayi = sayi + 1 end
+end
+local hedef = _G.SDK.ObjectManager:GetEnemyHeroes(E.range)
+if(_G.SDK.Utilities:IsValidTarget(hedef) and K.Harass.minionHarass:Value() and Hazirmi(_E) and StackGetir(hedef)>0 and sayi >0) then
+Control.CastSpell(HK_E)
+end
+end
+
 function Cizim()
-if(Hazirmi(_E) == false) then return end
+if(Hazirmi(_E) == false or K.Draww.drawE:Value()==false) then return end
+
 		Draw.Circle(myHero.pos, E.range, 5, Draw.Color(255,255,255,0))
+if(K.Draww.drawHP:Value() == true) then
 		local dusman = _G.SDK.ObjectManager:GetEnemyHeroes(E.Range)
 		local y = ""
 		local hesap = 0
@@ -169,6 +275,7 @@ if(Hazirmi(_E) == false) then return end
 	end
 end
 end
+end
 
 function OnTick()
 	if(myHero.dead) then return end
@@ -179,6 +286,9 @@ function OnTick()
 
 	if _G.SDK.Orbwalker.Modes[_G.SDK.ORBWALKER_MODE_LANECLEAR] then 
 		Clear()
+	end
+	if _G.SDK.Orbwalker.Modes[_G.SDK.ORBWALKER_MODE_HARASS] then 
+		Harass()
 	end
 end
 
