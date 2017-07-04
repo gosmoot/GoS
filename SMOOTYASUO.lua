@@ -53,7 +53,17 @@ else
 return false
 end
 end
+function eEndPos(unit)
 
+    if unit ~= nil then
+        if _G.SDK.Utilities:GetDistanceSquared(myHero,unit) < 410 then
+           dashPointT = myHero + (Vector(unit) - myHero):Normalized() * 485
+        else 
+           dashPointT = myHero + (Vector(unit) - myHero):Normalized() * (_G.SDK.Utilities:GetDistanceSquared(myHero,unit) + 65)
+        end
+        return dashPointT
+    end
+end
 function getNearestMinion(unit)
 
     local closestMinion = nil
@@ -61,9 +71,9 @@ function getNearestMinion(unit)
 		for i=0, Game.MinionCount() do
 			local minyon = Game.Minion(i)
 			if(minyon ~= nil and minyon.isEnemy) then
-				if(_G.SDK.Utilities:GetDistanceSquared(myHero.pos,minyon.pos) <= myHero:GetSpellData(_E).range * myHero:GetSpellData(_E).range) then
-					if(_G.SDK.Utilities:GetDistanceSquared(minyon.pos,unit.pos) and nearestDistance < _G.SDK.Utilities:GetDistanceSquared(myHero.pos,minyon.pos)) then
-						nearestDistance = _G.SDK.Utilities:GetDistanceSquared(myHero.pos,minyon.pos)
+				if(_G.SDK.Utilities:GetDistanceSquared(myHero,minyon) <= myHero:GetSpellData(_E).range * myHero:GetSpellData(_E).range) then
+					if(_G.SDK.Utilities:GetDistanceSquared(eEndPos(minyon),unit) and nearestDistance < _G.SDK.Utilities:GetDistanceSquared(myHero,minyon)) then
+						nearestDistance = _G.SDK.Utilities:GetDistanceSquared(myHero,minyon)
 						closestMinion = minyon
 					end
 				end
