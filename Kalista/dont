@@ -1,1 +1,177 @@
+if myHero.charName ~= "Yasuo" then return print("This champion not supported.") end
+
+--[[
+
+		VARIABLES
+
+]]
+local Version = "v1.0"
+function GetDistance(from,to)
+	if(from.pos ~= nil) then from = from.pos end
+	if(to.pos ~= nil) then to = to.pos end
+	local x = (from.x - to.x)
+	local y = (from.y - to.y)
+	return x * x + y * y
+end
+
+function UnderEnemyTurret(range)
+	for i = 1, Game.TurretCount() do
+	local t = Game.Turret(i)
+		if t and t.team ~= myHero.team and not t.dead and GetDistance(pos, t) <= t.range*t.range + (t.boundingRadius * 2) * (t.boundingRadius * 2) then
+			return true
+		end
+	end
+	return false
+end
+
+function IsValid(who)
+	if who.team ~= myHero.team and who and not who.dead and GetDistance(myHero, who) <= myHero:GetSpellData(_R).range * myHero:GetSpellData(_R).range then
+		return true
+	end
+	return false
+end
+
+function MissileDataOwnerName(handle)
+	for i = 1, Game.HeroCount() do
+		local target = Game.Hero(i)
+		if target.handle == handle then
+			return target
+		end
+	end
+end
+
+function EnemiesAround(range)
+	local Count = 0
+	for i = 1, Game.HeroCount() do
+		local Enemy = Game.Hero(i)
+		if Enemy.isEnemy and ValidTarget(Enemy) and GetDistance(myHero, Enemy) <= range * range then
+			Count = Count + 1
+		end
+	end
+	return Count
+end
+
+function CanCast(sp)
+	if(myHero:GetSpellData(sp).currentCd == 0 and myHero:GetSpellData(sp).level > 0 and myHero.attackData.state == STATE_WINDUP == false) then
+		return true
+	end
+	return false
+end
+
+function VectorPointProjectionOnLineSegment(v1, v2, v)
+	local cx, cy, ax, ay, bx, by = v.x, (v.z or v.y), v1.x, (v1.z or v1.y), v2.x, (v2.z or v2.y)
+    local rL = ((cx - ax) * (bx - ax) + (cy - ay) * (by - ay)) / ((bx - ax) ^ 2 + (by - ay) ^ 2)
+    local pointLine = { x = ax + rL * (bx - ax), y = ay + rL * (by - ay) }
+    local rS = rL < 0 and 0 or (rL > 1 and 1 or rL)
+    local isOnSegment = rS == rL
+    local pointSegment = isOnSegment and pointLine or {x = ax + rS * (bx - ax), y = ay + rS * (by - ay)}
+	return pointSegment, pointLine, isOnSegment
+end
+
+
+function MinionsOnLine(startpos, endpos, width, team)
+	local Count = 0
+	for i = 1, Game.MinionCount() do
+		local m = Game.Minion(i)
+		if m and m.team == team and not m.dead then
+			local w = width + m.boundingRadius
+			local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(startpos, endpos, m.pos)
+			if isOnSegment and GetDistance(pointSegment, m) < w * w and GetDistance(startpos, endpos) > GetDistance(startpos, m) then
+				Count = Count + 1
+			end
+		end
+	end
+	return Count
+end
+
+function GetBestFarmPos(range, width)
+	local BestPos = nil
+	local MostHit = 0
+	for i = 1, Game.MinionCount() do
+		local m = Game.Minion(i)
+		if m and m.isEnemy and not m.dead then
+			local EndPos = myHero.pos + (m.pos - myHero.pos):Normalized() * range
+			local Count = MinionsOnLine(myHero.pos, EndPos, width, m)
+			if Count > MostHit then
+				MostHit = Count
+				BestPos = m.pos
+			end
+		end
+	end
+	return BestPos, MostHit
+end
+
+--[[
+
+													SMOOT'S YASUO
+
+]]
+
+--[[
+
+	MENU SETTINGS
+
+]]
+--Menu
+local Yasuo = MenuElement({type = MENU, id=YASUO, name = "<< SMOOT's Yasuo >>" , leftIcon = "http://img4.wikia.nocookie.net/__cb20140405091106/leagueoflegends/images/c/c9/Yasuo_Render.png"})
+Yasuo:MenuElement({type = MENU, id = "YASUOCOMBO", name = "<< Combo Settings >>"})
+Yasuo:MenuElement({type = MENU, id = "YASUOHARASS", name = "<< Harass Settings >>"})
+Yasuo:MenuElement({type = MENU, id = "YASUOLANECLEAR", name = "<< Lane Clear Settings >>"})
+Yasuo:MenuElement({type = MENU, id = "YASUOLASTHIT", name = "<< Last Hit Settings >>"})
+Yasuo:MenuElement({type = MENU, id = "YASUOAUTOWINDWALL", name = "<< Auto Windwall Settings >>"})
+Yasuo:MenuElement({type = MENU, id = "YASUOKS", name = "<< Kill Steal Settings >>"})
+Yasuo:MenuElement({type = MENU, id = "YASUOAUTOR", name = "<< Auto R Settings >>"})
+Yasuo:MenuElement({type = MENU, id = "YASUODRAW", name = "<< Draw Settings >>"})
+Yasuo:MenuElement({id = "predSet", name = "<< Prediction Value >>")
+--Sub Menu
+--Combo
+Yasuo.YASUOCOMBO:MenuElement({id = "COMBOQ", name = "<< Use Q >>", value = true ,leftIcon = "http://oi62.tinypic.com/153xyrq.jpg"})
+Yasuo.YASUOCOMBO:MenuElement({id = "COMBOQ2", name = "<< Use Q2 >>", value = true ,leftIcon = "http://oi62.tinypic.com/153xyrq.jpg"})
+Yasuo.YASUOCOMBO:MenuElement({id = "COMBOE", name = "<< Use E >>", value = true ,leftIcon = "http://www.mobafire.com/images/ability/yasuo-sweeping-blade.png"})
+Yasuo.YASUOCOMBO:MenuElement({id = "COMBOEGAP", name = "<< Use E Gap >>", value = true ,leftIcon = "http://www.mobafire.com/images/ability/yasuo-sweeping-blade.png"})
+Yasuo.YASUOCOMBO:MenuElement({id = "COMBOR", name = "<< Use R %(HEALTH) >>", value = 40,min = 0, max = 100, step = 1 ,leftIcon = "http://riot-web-static.s3.amazonaws.com/images/news/November_2013/YARP/R.png"})
+--Harass
+Yasuo.YASUOHARASS:MenuElement({id = "HARASSQ", name = "<< Use Q >>", value = true, leftIcon = "http://oi62.tinypic.com/153xyrq.jpg"})
+Yasuo.YASUOHARASS:MenuElement({id = "HARASSQ2", name = "<< Use Q2 >>", value = true, leftIcon = "http://oi62.tinypic.com/153xyrq.jpg"})
+Yasuo.YASUOHARASS:MenuElement({id = "HARASSE", name = "<< Use E (Just Minion) >>", value = true, leftIcon = "http://www.mobafire.com/images/ability/yasuo-sweeping-blade.png"})
+--LaneClear
+Yasuo.YASUOLANECLEAR:MenuElement({id = "LANECLEARQ", name = "<< Use Q >>", value = true, leftIcon = "http://oi62.tinypic.com/153xyrq.jpg"})
+Yasuo.YASUOLANECLEAR:MenuElement({id = "LANECLEARQ2", name = "<< Use Q2 >>", value = true, leftIcon = "http://oi62.tinypic.com/153xyrq.jpg"})
+Yasuo.YASUOLANECLEAR:MenuElement({id = "LANECLEARE", name = "<< Use E >>", value = true, leftIcon = "http://www.mobafire.com/images/ability/yasuo-sweeping-blade.png"})
+--LastHit
+Yasuo.YASUOLASTHIT:MenuElement({id = "LASTHITQ", name = "<< Use Q >>", value = true, leftIcon = "http://oi62.tinypic.com/153xyrq.jpg"})
+Yasuo.YASUOLASTHIT:MenuElement({id = "LASTHITE", name = "<< Use E >>", value = true, leftIcon = "http://www.mobafire.com/images/ability/yasuo-sweeping-blade.png"})
+--KillSteal
+Yasuo.YASUOKS:MenuElement({id = "KSQ", name = "<< Use Q >>", value = true , leftIcon = "http://oi62.tinypic.com/153xyrq.jpg"})
+Yasuo.YASUOKS:MenuElement({id = "KSQ2", name = "<< Use Q2 >>", value = true, leftIcon = "http://oi62.tinypic.com/153xyrq.jpg"})
+Yasuo.YASUOKS:MenuElement({id = "KSR", name = "<< Use R >>", value = true, leftIcon = "http://riot-web-static.s3.amazonaws.com/images/news/November_2013/YARP/R.png"})
+--Auto R
+Yasuo.YASUOAUTOR:MenuElement({id = "AUTOR", name = "<< Auto R >>",value = true, leftIcon = "http://riot-web-static.s3.amazonaws.com/images/news/November_2013/YARP/R.png"})
+Yasuo.YASUOAUTOR:MenuElement({id = "AUTORMIN", name = "<< Min R >>", value = 2, min = 1, max = 5})
+--Draw
+Yasuo.YASUODRAW:MenuElement({id = "DRAWQ1", name = "<< Draw Q >>", value = true})
+Yasuo.YASUODRAW:MenuElement({id = "DRAWQ2", name = "<< Draw Q2 >>", value = true})
+Yasuo.YASUODRAW:MenuElement({id = "DRAWSETTINGS", name = "<< Draw Settings >>", value = true})
+Yasuo.YASUODRAW:MenuElement({id = "DRAWKILLABLE", name = "<< Draw Killable >>", value = true})
+--[[
+
+
+				WINDWALL SETTINGS
+				
+]]
+--[[
+
+		
+				LOGIC
+
+]]
+
+function LastHit()
+	for i, Game.MinionCount() do
+		local Minion = Game.Minion(i)
+		if Minion and Minion.team ~= myHero.team and GetDistance(myHero, Minion)
+end
+
+
+print("Welcome "..myHero.name)
 https://github.com/DuckSong/TheNewYasuo/blob/master/EvadePlus/SkillshotDatabase.cs
