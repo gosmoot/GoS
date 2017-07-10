@@ -1,5 +1,5 @@
 if myHero.charName ~= "Yasuo" then return print("This champion not supported.") end
-
+require("DamageLib")
 --[[
 
 		VARIABLES
@@ -24,7 +24,7 @@ function UnderEnemyTurret(range)
 	return false
 end
 
-function IsValid(who)
+function ValidTarget(who)
 	if who.team ~= myHero.team and who and not who.dead and GetDistance(myHero, who) <= myHero:GetSpellData(_R).range * myHero:GetSpellData(_R).range then
 		return true
 	end
@@ -122,7 +122,7 @@ Yasuo:MenuElement({type = MENU, id = "YASUOAUTOWINDWALL", name = "<< Auto Windwa
 Yasuo:MenuElement({type = MENU, id = "YASUOKS", name = "<< Kill Steal Settings >>"})
 Yasuo:MenuElement({type = MENU, id = "YASUOAUTOR", name = "<< Auto R Settings >>"})
 Yasuo:MenuElement({type = MENU, id = "YASUODRAW", name = "<< Draw Settings >>"})
-Yasuo:MenuElement({id = "predSet", name = "<< Prediction Value >>")
+Yasuo:MenuElement({id = "predSet", name = "<< Prediction Value >>", value = 0.45, min = 0.05, max = 1.00, step = 0.05})
 --Sub Menu
 --Combo
 Yasuo.YASUOCOMBO:MenuElement({id = "COMBOQ", name = "<< Use Q >>", value = true ,leftIcon = "http://oi62.tinypic.com/153xyrq.jpg"})
@@ -140,6 +140,7 @@ Yasuo.YASUOLANECLEAR:MenuElement({id = "LANECLEARQ2", name = "<< Use Q2 >>", val
 Yasuo.YASUOLANECLEAR:MenuElement({id = "LANECLEARE", name = "<< Use E >>", value = true, leftIcon = "http://www.mobafire.com/images/ability/yasuo-sweeping-blade.png"})
 --LastHit
 Yasuo.YASUOLASTHIT:MenuElement({id = "LASTHITQ", name = "<< Use Q >>", value = true, leftIcon = "http://oi62.tinypic.com/153xyrq.jpg"})
+Yasuo.YASUOLASTHIT:MenuElement({id = "LASTHITQ2", name = "<< Use Q2 >>", value = true, leftIcon = "http://oi62.tinypic.com/153xyrq.jpg"})
 Yasuo.YASUOLASTHIT:MenuElement({id = "LASTHITE", name = "<< Use E >>", value = true, leftIcon = "http://www.mobafire.com/images/ability/yasuo-sweeping-blade.png"})
 --KillSteal
 Yasuo.YASUOKS:MenuElement({id = "KSQ", name = "<< Use Q >>", value = true , leftIcon = "http://oi62.tinypic.com/153xyrq.jpg"})
@@ -167,11 +168,26 @@ Yasuo.YASUODRAW:MenuElement({id = "DRAWKILLABLE", name = "<< Draw Killable >>", 
 ]]
 
 function LastHit()
-	for i, Game.MinionCount() do
+	for i=0, Game.MinionCount() do
 		local Minion = Game.Minion(i)
-		if Minion and Minion.team ~= myHero.team and GetDistance(myHero, Minion)
+		if Minion and Minion.team ~= myHero.team and ValidTarget(Minion) then
+			if Minion.health <= getdmg("Q", Minion, myHero) and CanCast(_Q) and Yasuo.YASUOLASTHIT.LASTHITQ:Value() == true and myHero.attackData.state ~= STATE_WINDUP and GetDistance(myHero, Minion) <= myHero:GetSpellData(_Q).range * myHero:GetSpellData(_Q).range then
+				--Cast Q
+			end
+			if Minion.health <= getdmg("Q", Minion, myHero) and CanCast(_Q) and Yasuo.YASUOLASTHIT.LASTHITQ2:Value() == true and myHero.attackData.state ~= STATE.WINDUP and myHero:GetSpellData(_Q).name == "YasuoQ3W" and GetDistance(myHero, Minion) <= myHero:GetSpellData(_Q).range * myHero:GetSpellData(_Q).range then
+				--Cast Q2
+			end
+			if Minion.health <= getdmg("E", Minion, myHero) and CanCast(_E) and Yasuo.YASUOLASTHIT.LASTHITE.Value() == true and myHero.attackData.state ~= STATE.WINDUP and GetDistance(myHero, Minion) <= myHero:GetSpellData(_E).range * myHero:GetSpellData(_E).range then
+				print("dennnn")
+				Control.CastSpell(HK_E, Minion.pos)
+			end
+		end
+	end
 end
 
-
-print("Welcome "..myHero.name)
-https://github.com/DuckSong/TheNewYasuo/blob/master/EvadePlus/SkillshotDatabase.cs
+function OnTick()
+	if _G.SDK.Orbwalker.Modes[_G.SDK.ORBWALKER_MODE_LASTHIT] then
+		LastHit()
+	end
+end
+Callback.Add("Tick",function() OnTick() end)
